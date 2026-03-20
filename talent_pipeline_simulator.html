@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Talent Pipeline Simulator</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121933;
+      --panel-2:#182246;
+      --text:#eef3ff;
+      --muted:#a9b5d6;
+      --accent:#7aa2ff;
+      --good:#57d38c;
+      --warn:#ffd166;
+      --bad:#ff6b6b;
+      --border:rgba(255,255,255,0.08);
+      --shadow:0 18px 50px rgba(0,0,0,0.28);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(122,162,255,0.18), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(87,211,140,0.12), transparent 25%),
+        var(--bg);
+      color:var(--text);
+      min-height:100vh;
+    }
+    .wrap{
+      max-width:1200px;
+      margin:0 auto;
+      padding:28px;
+    }
+    .hero{
+      display:flex;
+      gap:18px;
+      align-items:flex-start;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      margin-bottom:22px;
+    }
+    .hero h1{
+      margin:0 0 8px;
+      font-size:clamp(28px,4vw,44px);
+      line-height:1.05;
+      letter-spacing:-0.02em;
+    }
+    .hero p{
+      margin:0;
+      color:var(--muted);
+      max-width:760px;
+      font-size:16px;
+    }
+    .badge{
+      background:rgba(122,162,255,0.12);
+      border:1px solid rgba(122,162,255,0.25);
+      color:#d8e4ff;
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:13px;
+      white-space:nowrap;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap:20px;
+    }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+    }
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid var(--border);
+      border-radius:22px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-header{
+      padding:18px 20px 12px;
+      border-bottom:1px solid var(--border);
+      background:rgba(255,255,255,0.02);
+    }
+    .card-header h2{
+      margin:0;
+      font-size:20px;
+    }
+    .card-header p{
+      margin:6px 0 0;
+      color:var(--muted);
+      font-size:14px;
+    }
+    .controls{
+      padding:18px 20px 22px;
+      display:grid;
+      gap:18px;
+    }
+    .control{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px 14px 12px;
+    }
+    .control-top{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      align-items:center;
+      margin-bottom:10px;
+    }
+    .control-name{
+      font-weight:700;
+      font-size:15px;
+    }
+    .control-desc{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:4px;
+    }
+    .value-pill{
+      min-width:54px;
+      text-align:center;
+      padding:8px 10px;
+      border-radius:999px;
+      background:var(--panel-2);
+      border:1px solid var(--border);
+      font-weight:700;
+      color:#fff;
+    }
+    input[type="range"]{
+      width:100%;
+      accent-color: var(--accent);
+      cursor:pointer;
+    }
+    .presets{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      padding:0 20px 20px;
+    }
+    button{
+      border:1px solid var(--border);
+      background:var(--panel);
+      color:var(--text);
+      padding:11px 14px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    button:hover{filter:brightness(1.08)}
+    .pipeline{
+      padding:20px;
+    }
+    .stages{
+      display:grid;
+      gap:14px;
+    }
+    .stage{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:14px 16px;
+      position:relative;
+      overflow:hidden;
+    }
+    .stage::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(90deg, rgba(122,162,255,0.18), transparent);
+      width:var(--fill, 50%);
+      pointer-events:none;
+    }
+    .stage-head{
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:8px;
+      position:relative;
+      z-index:1;
+    }
+    .stage-title{
+      font-weight:800;
+      letter-spacing:0.01em;
+    }
+    .stage-sub{
+      font-size:12px;
+      color:var(--muted);
+      position:relative;
+      z-index:1;
+    }
+    .bar{
+      height:12px;
+      background:rgba(255,255,255,0.08);
+      border-radius:999px;
+      overflow:hidden;
+      position:relative;
+      z-index:1;
+    }
+    .bar > span{
+      display:block;
+      height:100%;
+      width:var(--w, 50%);
+      border-radius:999px;
+      background:linear-gradient(90deg, var(--bad), var(--warn), var(--good));
+    }
+    .arrow{
+      text-align:center;
+      color:var(--muted);
+      font-size:22px;
+      margin:-2px 0;
+    }
+    .results{
+      padding:20px;
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:14px;
+    }
+    @media (max-width: 620px){
+      .results{grid-template-columns:1fr}
+    }
+    .metric{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+    }
+    .metric .label{
+      color:var(--muted);
+      font-size:13px;
+      margin-bottom:8px;
+    }
+    .metric .num{
+      font-size:34px;
+      line-height:1;
+      font-weight:800;
+      letter-spacing:-0.03em;
+    }
+    .metric .hint{
+      margin-top:8px;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .story{
+      margin:0 20px 20px;
+      padding:16px 18px;
+      background:rgba(122,162,255,0.08);
+      border:1px solid rgba(122,162,255,0.18);
+      border-radius:16px;
+      color:#e7efff;
+      line-height:1.55;
+    }
+    .footer-note{
+      color:var(--muted);
+      font-size:12px;
+      margin-top:14px;
+    }
+    .small{
+      font-size:12px;
+      color:var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div>
+        <h1>Talent Pipeline Simulator</h1>
+        <p>Adjust the four talent levers and see how the pipeline changes from capability building to business outcomes. This is a simple visual model for leadership, L&D, and talent discussions.</p>
+      </div>
+      <div class="badge">Interactive HR Strategy Demo</div>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <div class="card-header">
+          <h2>Input Levers</h2>
+          <p>Move the sliders to test different workforce scenarios.</p>
+        </div>
+
+        <div class="controls">
+          <div class="control">
+            <div class="control-top">
+              <div>
+                <div class="control-name">Training Investment</div>
+                <div class="control-desc">Quality, intensity, and consistency of learning investment.</div>
+              </div>
+              <div class="value-pill" id="investmentVal">65</div>
+            </div>
+            <input id="investment" type="range" min="0" max="100" value="65">
+          </div>
+
+          <div class="control">
+            <div class="control-top">
+              <div>
+                <div class="control-name">Leadership Quality</div>
+                <div class="control-desc">Manager support, coaching quality, and execution discipline.</div>
+              </div>
+              <div class="value-pill" id="leadershipVal">70</div>
+            </div>
+            <input id="leadership" type="range" min="0" max="100" value="70">
+          </div>
+
+          <div class="control">
+            <div class="control-top">
+              <div>
+                <div class="control-name">Employee Engagement</div>
+                <div class="control-desc">Motivation, trust, commitment, and willingness to apply effort.</div>
+              </div>
+              <div class="value-pill" id="engagementVal">62</div>
+            </div>
+            <input id="engagement" type="range" min="0" max="100" value="62">
+          </div>
+
+          <div class="control">
+            <div class="control-top">
+              <div>
+                <div class="control-name">Skill Adoption</div>
+                <div class="control-desc">How far newly learned skills are used in daily work.</div>
+              </div>
+              <div class="value-pill" id="adoptionVal">58</div>
+            </div>
+            <input id="adoption" type="range" min="0" max="100" value="58">
+          </div>
+        </div>
+
+        <div class="presets">
+          <button data-preset="high">High-Performance Organization</button>
+          <button data-preset="fragile">Fragile Pipeline</button>
+          <button data-preset="learning">Learning-Led Growth</button>
+          <button data-preset="reset">Reset</button>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-header">
+          <h2>Talent Flow</h2>
+          <p>See how the pipeline translates talent inputs into organizational outcomes.</p>
+        </div>
+
+        <div class="pipeline">
+          <div class="stages">
+            <div class="stage" id="stageCapability">
+              <div class="stage-head">
+                <div class="stage-title">Capability Build</div>
+                <div class="small" id="capabilityText">0%</div>
+              </div>
+              <div class="stage-sub">How well skills are developed and strengthened</div>
+              <div class="bar"><span id="capabilityBar"></span></div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="stage" id="stageReadiness">
+              <div class="stage-head">
+                <div class="stage-title">Role Readiness</div>
+                <div class="small" id="readinessText">0%</div>
+              </div>
+              <div class="stage-sub">Bench strength and readiness for current and future roles</div>
+              <div class="bar"><span id="readinessBar"></span></div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="stage" id="stageProductivity">
+              <div class="stage-head">
+                <div class="stage-title">Workforce Productivity</div>
+                <div class="small" id="productivityText">0%</div>
+              </div>
+              <div class="stage-sub">Application of talent into execution, output, and delivery</div>
+              <div class="bar"><span id="productivityBar"></span></div>
+            </div>
+
+            <div class="arrow">↓</div>
+
+            <div class="stage" id="stageBusiness">
+              <div class="stage-head">
+                <div class="stage-title">Business Impact</div>
+                <div class="small" id="businessText">0%</div>
+              </div>
+              <div class="stage-sub">Commercial and strategic value generated from the pipeline</div>
+              <div class="bar"><span id="businessBar"></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="results">
+          <div class="metric">
+            <div class="label">Productivity Score</div>
+            <div class="num" id="prodScore">0</div>
+            <div class="hint">Composite execution strength</div>
+          </div>
+
+          <div class="metric">
+            <div class="label">Attrition Risk</div>
+            <div class="num" id="attritionRisk">0%</div>
+            <div class="hint">Higher means more talent leakage risk</div>
+          </div>
+
+          <div class="metric">
+            <div class="label">Leadership Readiness</div>
+            <div class="num" id="leaderReadiness">0%</div>
+            <div class="hint">Strength of the future leader bench</div>
+          </div>
+
+          <div class="metric">
+            <div class="label">Growth Potential</div>
+            <div class="num" id="growthPotential">0%</div>
+            <div class="hint">Capacity for sustainable organizational growth</div>
+          </div>
+        </div>
+
+        <div class="story" id="storyBox"></div>
+      </section>
+    </div>
+
+    <div class="footer-note">Built as a lightweight HTML demo for LinkedIn, GitHub Pages, or portfolio sharing.</div>
+  </div>
+
+  <script>
+    const ids = ["investment", "leadership", "engagement", "adoption"];
+    const inputs = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+    const values = {
+      investmentVal: document.getElementById("investmentVal"),
+      leadershipVal: document.getElementById("leadershipVal"),
+      engagementVal: document.getElementById("engagementVal"),
+      adoptionVal: document.getElementById("adoptionVal")
+    };
+
+    const els = {
+      capabilityBar: document.getElementById("capabilityBar"),
+      readinessBar: document.getElementById("readinessBar"),
+      productivityBar: document.getElementById("productivityBar"),
+      businessBar: document.getElementById("businessBar"),
+      capabilityText: document.getElementById("capabilityText"),
+      readinessText: document.getElementById("readinessText"),
+      productivityText: document.getElementById("productivityText"),
+      businessText: document.getElementById("businessText"),
+      prodScore: document.getElementById("prodScore"),
+      attritionRisk: document.getElementById("attritionRisk"),
+      leaderReadiness: document.getElementById("leaderReadiness"),
+      growthPotential: document.getElementById("growthPotential"),
+      storyBox: document.getElementById("storyBox"),
+      stageCapability: document.getElementById("stageCapability"),
+      stageReadiness: document.getElementById("stageReadiness"),
+      stageProductivity: document.getElementById("stageProductivity"),
+      stageBusiness: document.getElementById("stageBusiness")
+    };
+
+    function clamp(n, min=0, max=100){ return Math.max(min, Math.min(max, n)); }
+    function round(n){ return Math.round(n); }
+
+    function colorStrength(value){
+      if (value >= 75) return "var(--good)";
+      if (value >= 45) return "var(--warn)";
+      return "var(--bad)";
+    }
+
+    function applyStage(stageEl, barEl, labelEl, value){
+      const v = clamp(round(value));
+      stageEl.style.setProperty("--fill", v + "%");
+      barEl.style.setProperty("--w", v + "%");
+      barEl.style.background = "linear-gradient(90deg, " + colorStrength(Math.max(0,v-25)) + ", " + colorStrength(v) + ", " + colorStrength(Math.min(100,v+20)) + ")";
+      labelEl.textContent = v + "%";
+    }
+
+    function narrative(data){
+      const strongest = [
+        ["training investment", data.investment],
+        ["leadership quality", data.leadership],
+        ["employee engagement", data.engagement],
+        ["skill adoption", data.adoption]
+      ].sort((a,b)=>b[1]-a[1])[0][0];
+
+      const weakest = [
+        ["training investment", data.investment],
+        ["leadership quality", data.leadership],
+        ["employee engagement", data.engagement],
+        ["skill adoption", data.adoption]
+      ].sort((a,b)=>a[1]-b[1])[0][0];
+
+      let line1 = "";
+      if (data.business >= 75) {
+        line1 = "This pipeline is in a strong zone. Capability is translating into role readiness and business value with relatively low friction.";
+      } else if (data.business >= 50) {
+        line1 = "This pipeline is moderately healthy, but value is leaking between learning and execution. The system is working, just not at full force.";
+      } else {
+        line1 = "This pipeline is fragile. Talent inputs are not being converted into consistent performance and the organization is likely losing momentum.";
+      }
+
+      let line2 = "Your strongest lever right now is " + strongest + ", while the biggest drag in the system is " + weakest + ".";
+      let line3 = "Capability build is at " + round(data.capability) + "%, leadership readiness is " + round(data.readiness) + "%, workforce productivity is " + round(data.productivity) + "%, and projected business impact is " + round(data.business) + "%. Attrition risk sits at " + round(data.attrition) + "%.";
+
+      let action = "";
+      if (weakest === "skill adoption") {
+        action = "Priority action: focus on manager-led application, stretch assignments, and post-training reinforcement so learning moves into real work.";
+      } else if (weakest === "employee engagement") {
+        action = "Priority action: improve manager connection, recognition, and trust so employees bring more discretionary effort into the pipeline.";
+      } else if (weakest === "leadership quality") {
+        action = "Priority action: strengthen coaching quality and accountability. Leadership quality amplifies every other talent lever.";
+      } else {
+        action = "Priority action: sharpen the quality and targeting of learning investment so the pipeline starts with stronger skill inputs.";
+      }
+
+      return line1 + " " + line2 + " " + line3 + " " + action;
+    }
+
+    function update(){
+      const investment = +inputs.investment.value;
+      const leadership = +inputs.leadership.value;
+      const engagement = +inputs.engagement.value;
+      const adoption = +inputs.adoption.value;
+
+      values.investmentVal.textContent = investment;
+      values.leadershipVal.textContent = leadership;
+      values.engagementVal.textContent = engagement;
+      values.adoptionVal.textContent = adoption;
+
+      const capability = clamp(investment * 0.42 + adoption * 0.33 + leadership * 0.15 + engagement * 0.10);
+      const readiness = clamp(capability * 0.38 + leadership * 0.37 + engagement * 0.15 + adoption * 0.10);
+      const productivity = clamp(readiness * 0.34 + adoption * 0.30 + engagement * 0.24 + leadership * 0.12);
+      const business = clamp(productivity * 0.55 + readiness * 0.20 + engagement * 0.15 + leadership * 0.10);
+
+      const attrition = clamp(100 - (engagement * 0.50 + leadership * 0.30 + adoption * 0.20));
+      const growth = clamp(business * 0.60 + readiness * 0.25 + investment * 0.15);
+      const leaderReadiness = clamp(readiness * 0.70 + leadership * 0.30);
+
+      applyStage(els.stageCapability, els.capabilityBar, els.capabilityText, capability);
+      applyStage(els.stageReadiness, els.readinessBar, els.readinessText, readiness);
+      applyStage(els.stageProductivity, els.productivityBar, els.productivityText, productivity);
+      applyStage(els.stageBusiness, els.businessBar, els.businessText, business);
+
+      els.prodScore.textContent = round(productivity);
+      els.attritionRisk.textContent = round(attrition) + "%";
+      els.leaderReadiness.textContent = round(leaderReadiness) + "%";
+      els.growthPotential.textContent = round(growth) + "%";
+
+      els.storyBox.textContent = narrative({
+        investment: investment,
+        leadership: leadership,
+        engagement: engagement,
+        adoption: adoption,
+        capability: capability,
+        readiness: readiness,
+        productivity: productivity,
+        business: business,
+        attrition: attrition
+      });
+    }
+
+    ids.forEach(function(id){
+      inputs[id].addEventListener("input", update);
+    });
+
+    document.querySelectorAll("button[data-preset]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        const preset = btn.dataset.preset;
+        if (preset === "high"){
+          inputs.investment.value = 88;
+          inputs.leadership.value = 90;
+          inputs.engagement.value = 84;
+          inputs.adoption.value = 86;
+        } else if (preset === "fragile"){
+          inputs.investment.value = 44;
+          inputs.leadership.value = 38;
+          inputs.engagement.value = 41;
+          inputs.adoption.value = 29;
+        } else if (preset === "learning"){
+          inputs.investment.value = 90;
+          inputs.leadership.value = 66;
+          inputs.engagement.value = 61;
+          inputs.adoption.value = 57;
+        } else {
+          inputs.investment.value = 65;
+          inputs.leadership.value = 70;
+          inputs.engagement.value = 62;
+          inputs.adoption.value = 58;
+        }
+        update();
+      });
+    });
+
+    update();
+  </script>
+</body>
+</html>
